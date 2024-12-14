@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using MassTransit;
+using Microsoft.AspNetCore.Mvc;
 
 namespace ApiRabbitMQ.Controllers
 {
@@ -6,16 +7,15 @@ namespace ApiRabbitMQ.Controllers
     [ApiController]
     public class ReportController : ControllerBase
     {
+        private readonly IBus _bus;
 
-
-        [HttpGet("hello-world")]
-        public IActionResult Get()
+        public ReportController(IBus bus)
         {
-            return Ok("Hello World");
+            _bus = bus;
         }
 
         [HttpPost("solicitar-relatorio/{name}")]
-        public IActionResult SolicitarRelatorio(string name)
+        public async Task<IActionResult> SolicitarRelatorioAsync(string name)
         {
             var solicitacao = new SolicitacaoRelatorio()
             {
@@ -26,6 +26,10 @@ namespace ApiRabbitMQ.Controllers
             };
 
             Lista.Relatorios.Add(solicitacao);
+
+            var evento = new RelatorioSolicitadoEvent(solicitacao.Id, solicitacao.Nome);
+
+            await _bus.Publish(evento);
 
             return Ok(solicitacao);
         }
